@@ -1,4 +1,6 @@
 <?php
+namespace Luoyecb;
+
 /**
  * A simple command line option parser.
  * @author guolinchao
