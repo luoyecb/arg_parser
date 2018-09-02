@@ -163,21 +163,21 @@ class ArgParser
 						self::$opts[$name]['v'] = true;
 						break;
 					case self::TYPE_INT:
-						if ( ($int = self::getNumeric($argv[$idx])) !== false
+						if (isset($argv[$idx]) && ($int = self::getNumeric($argv[$idx])) !== false
 							&& is_int($int) ) {
 							self::$opts[$name]['v'] = $int;
 							$idx++;
 						}
 						break;
 					case self::TYPE_FLOAT:
-						if ( ($float = self::getNumeric($argv[$idx])) !== false
+						if (isset($argv[$idx]) && ($float = self::getNumeric($argv[$idx])) !== false
 							&& is_float($float) ) {
 							self::$opts[$name]['v'] = $float;
 							$idx++;
 						}
 						break;
 					case self::TYPE_STRING:
-						if (!self::isOpt($argv[$idx])) {
+						if (isset($argv[$idx]) && !self::isOpt($argv[$idx])) {
 							self::$opts[$name]['v'] = $argv[$idx];
 							$idx++;
 						}
