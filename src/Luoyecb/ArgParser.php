@@ -96,6 +96,9 @@ class ArgParser
 		if (empty($opt) || strlen($opt) <= 1) {
 			return false;
 		}
+		if (strncmp($opt, '--', 2) === 0) {
+			return substr($opt, 2); // option name without '--'
+		}
 		if ($opt[0] == '-') {
 			return substr($opt, 1); // option name without '-'
 		}
@@ -148,7 +151,7 @@ class ArgParser
 					break;
 				} else {
 					// parse options
-					if (!isset(self::$opts[$name])) {
+					if (!isset(self::$opts[$name])) { // invalid option flag
 						$idx++;
 						continue;
 					}
