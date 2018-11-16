@@ -10,8 +10,16 @@ A simple command line option parser.
     ArgParser::addFloat('salary', 14000.00);
     ArgParser::addString('c', 'this is comment');
 
-    var_dump(ArgParser::parse());
+    ArgParser::parse();
     var_dump(ArgParser::getArgs());
-    var_dump(ArgParser::getOptions());
+
+    $opts = ArgParser::getOptions();
+    var_dump($opts);
+
+    extract($opts);
+    // $flag
+    // $times
+    // $salary
+    // $c
 
     var_dump(ArgParser::getOption('flag'));
