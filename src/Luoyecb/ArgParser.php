@@ -1,54 +1,62 @@
 <?php
 namespace Luoyecb;
 
-/**
- * A simple command line option parser.
- * @author guolinchao
- * @email  luoyecb@163.com
- */
+use \Exception;
+
+// A simple command line option parser.
 class ArgParser
 {
-	/**
-	 * option type
-	 */
+	// Supported option types
 	const TYPE_INT = 'int';
 	const TYPE_FLOAT = 'float';
 	const TYPE_BOOL = 'bool';
 	const TYPE_STRING = 'str';
 
-	/**
-	 * all options
-	 * 
-	 * @var array
-	 */
-	protected static $opts = [];
+	private static $opts = [];
+	private static $parsedOpts = [];
+	private static $args = [];
+	private static $isParsed = false;
 
-	/**
-	 * all args
-	 * 
-	 * @var array
-	 */
-	protected static $args = [];
+	public static function addBool(string $name, $default) {
+		self::addOption($name, self::TYPE_BOOL, $default);
+	}
 
-	protected static $isParsed = false;
+	public static function addInt(string $name, $default) {
+		self::addOption($name, self::TYPE_INT, $default);
+	}
 
-	/**
-	 * add an option
-	 * 
-	 * @param string $name
-	 * @param string $type
-	 * @param mixed $default default value
-	 */
-	public static function addArgument($name, $type, $default) {
-		// check option type
+	public static function addFloat(string $name, $default) {
+		self::addOption($name, self::TYPE_FLOAT, $default);
+	}
+
+	public static function addString(string $name, $default) {
+		self::addOption($name, self::TYPE_STRING, $default);
+	}
+
+	public static function addOption(string $name, string $type, $default) {
 		switch ($type) {
-			case self::TYPE_INT:
-			case self::TYPE_FLOAT:
-			case self::TYPE_BOOL:
-			case self::TYPE_STRING:
-				break;
-			default:
-				throw new InvalidArgumentException(sprintf('unknown option type[%s].', $type));
+		case self::TYPE_INT:
+			if (!is_int($default)) {
+				throw new InvalidArgumentException(sprintf("invalid option value, must be int."));
+			}
+			break;
+		case self::TYPE_FLOAT:
+			if (!is_float($default)) {
+				throw new InvalidArgumentException(sprintf("invalid option value, must be float."));
+			}
+			break;
+		case self::TYPE_BOOL:
+			if (!is_bool($default)) {
+				throw new InvalidArgumentException(sprintf("invalid option value, must be bool."));
+			}
+			break;
+		case self::TYPE_STRING:
+			if (!is_string($default)) {
+				throw new InvalidArgumentException(sprintf("invalid option value, must be string."));
+			}
+			break;
+		default:
+			throw new InvalidArgumentException(sprintf('unknown option type[%s].', $type));
 		}
 
 		self::$opts[$name] = [
@@ -57,141 +65,131 @@ class ArgParser
 		];
 	}
 
-	/**
-	 * add bool option
-	 */
-	public static function addBool($name, $default) {
-		self::addArgument($name, self::TYPE_BOOL, $default);
-	}
-
-	/**
-	 * add int option
-	 */
-	public static function addInt($name, $default) {
-		self::addArgument($name, self::TYPE_INT, $default);
-	}
-
-	/**
-	 * add float option
-	 */
-	public static function addFloat($name, $default) {
-		self::addArgument($name, self::TYPE_FLOAT, $default);
-	}
-
-	/**
-	 * add string option
-	 */
-	public static function addString($name, $default) {
-		self::addArgument($name, self::TYPE_STRING, $default);
-	}
-
-	/**
-	 * check is a valid option flag
-	 * 
-	 * @param  string $opt
-	 * @return boolean|string
-	 */
-	protected static function isOpt($opt) {
-		$opt = trim($opt);
-		if (empty($opt) || strlen($opt) <= 1) {
-			return false;
-		}
-		if (strncmp($opt, '--', 2) === 0) {
-			return substr($opt, 2); // option name without '--'
-		}
-		if ($opt[0] == '-') {
-			return substr($opt, 1); // option name without '-'
-		}
-		return false;
-	}
-
-	/**
-	 * check is a valid number
-	 * 
-	 * @param  string $str
-	 * @return boolean|float|integer
-	 */
-	protected static function getNumeric($str) {
-		if (is_numeric($str)) {
-			return $str + 0; // change to int or float
-		}
-		return false; // not number
-	}
-
-	public static function getArgs() {
+	public static function getArgs(): array {
 		return self::$args;
 	}
 
-	public static function getOptions() {
-		return self::$opts;
+	public static function getOptions(): array {
+		return self::$parsedOpts;
 	}
 
-	public static function getOption($name) {
-		if (self::$isParsed) {
-			return self::$opts[$name]; // actual value
+	public static function getOption(string $name) {
+		if (isset(self::$parsedOpts[$name])) {
+			return self::$parsedOpts[$name];
 		}
-		return self::$opts[$name]['v']; // default value
+		throw new Exception(sprintf('unknown option[%s].', $name));
 	}
 
-	/**
-	 * parse options
-	 * 
-	 * @return array
-	 */
 	public static function parse() {
+		if (self::$isParsed) {
+			return;
+		}
+
 		global $argv;
-		if (!self::$isParsed) {
-			$idx = 1; // index start from 1.
-			$len = count($argv);
-			while ($idx < $len) {
-				$cur = $argv[$idx];
-				// parse args
-				if (!($name = self::isOpt($cur))) {
-					self::$args = array_slice($argv, $idx);
+		$idx = 1;
+		$len = count($argv);
+
+		while ($idx < $len) {
+			if ($argv[$idx] == '--') {
+				self::$args = array_slice($argv, $idx+1);
+				break;
+			}
+
+			$name = self::isValidOption($argv[$idx]);
+			if ($name === false) {
+				self::$args = array_slice($argv, $idx);
+				break;
+			} else {
+				if (!isset(self::$opts[$name])) {
+					// unknown option, ignored
+					$idx++;
+					continue;
+				}
+
+				$default = self::$opts[$name];
+				$idx++;
+				switch ($default['t']) {
+				case self::TYPE_BOOL:
+					self::$opts[$name]['v'] = true;
 					break;
-				} else {
-					// parse options
-					if (!isset(self::$opts[$name])) { // invalid option flag
-						$idx++;
-						continue;
+				case self::TYPE_INT:
+					if ($idx >= $len) {
+						throw new Exception(sprintf("option[%s] require value.", $name));
 					}
-					// default value
-					$dft = self::$opts[$name];
-					$idx++; // handle next argument
-					switch ($dft['t']) {
-					case self::TYPE_BOOL:
-						self::$opts[$name]['v'] = true;
-						break;
-					case self::TYPE_INT:
-						if (isset($argv[$idx]) && ($int = self::getNumeric($argv[$idx])) !== false
-							&& is_int($int) ) {
-							self::$opts[$name]['v'] = $int;
-							$idx++;
-						}
-						break;
-					case self::TYPE_FLOAT:
-						if (isset($argv[$idx]) && ($float = self::getNumeric($argv[$idx])) !== false
-							&& is_float($float) ) {
-							self::$opts[$name]['v'] = $float;
-							$idx++;
-						}
-						break;
-					case self::TYPE_STRING:
-						if (isset($argv[$idx]) && !self::isOpt($argv[$idx])) {
-							self::$opts[$name]['v'] = $argv[$idx];
-							$idx++;
-						}
+
+					$val = self::isNumeric($argv[$idx]);
+					if ($val !== false && is_int($val)) {
+						self::$opts[$name]['v'] = $val;
+						$idx++;
+					} else {
+						throw new Exception(sprintf("option[%s] require int value.", $name));
+					}
+					break;
+				case self::TYPE_FLOAT:
+					if ($idx >= $len) {
+						throw new Exception(sprintf("option[%s] require value.", $name));
+					}
+
+					$val = self::isNumeric($argv[$idx]);
+					if ($val !== false && is_float($val) ) {
+						self::$opts[$name]['v'] = $val;
+						$idx++;
+					} else {
+						throw new Exception(sprintf("option[%s] require float value.", $name));
+					}
+					break;
+				case self::TYPE_STRING:
+					if ($idx >= $len) {
+						throw new Exception(sprintf("option[%s] require value.", $name));
+					}
+
+					$val = self::isValidOption($argv[$idx]);
+					if ($val === false) {
+						self::$opts[$name]['v'] = $argv[$idx];
+						$idx++;
+					} else {
+						throw new Exception(sprintf("option[%s] require string value.", $name));
 					}
 				}
 			}
-
-			foreach (self::$opts as $name=>$v) {
-				self::$opts[$name] = $v['v'];
-			}
-
-			self::$isParsed = true;
 		}
 
-		return self::$opts;
+		foreach (self::$opts as $name => $val) {
+			self::$parsedOpts[$name] = $val['v'];
+		}
+
+		self::$isParsed = true;
+	}
+
+	private static function isValidOption(string $opt) {
+		$opt = trim($opt);
+		$len = strlen($opt);
+		if (empty($opt) || $len <= 1) {
+			return false;
+		}
+
+		if (self::strEqual($opt, '--', 2)) {
+			if ($len == 2) {
+				return false;
+			} else {
+				return substr($opt, 2); // without '--'
+			}
+		}
+		if ($opt[0] == '-') {
+			return substr($opt, 1); // without '-'
+		}
+
+		return false;
+	}
+
+	private static function strEqual(string $str1, string $str2, int $length): bool {
+		return strncmp($str1, $str2, $length) === 0;
+	}
+
+	private static function isNumeric(string $str) {
+		if (is_numeric($str)) {
+			return $str + 0;
+		}
+		return false;
 	}
 }

@@ -2,24 +2,23 @@
 A simple command line option parser.
 
 # Example:
+```php
+ArgParser::addBool('flag', false);
+ArgParser::addInt('times', 3);
+ArgParser::addFloat('salary', 14000.00);
+ArgParser::addString('c', 'this is comment');
 
-    <?php
+ArgParser::parse();
+var_dump(ArgParser::getArgs());
 
-    ArgParser::addBool('flag', false);
-    ArgParser::addInt('times', 3);
-    ArgParser::addFloat('salary', 14000.00);
-    ArgParser::addString('c', 'this is comment');
+$opts = ArgParser::getOptions();
+var_dump($opts);
 
-    ArgParser::parse();
-    var_dump(ArgParser::getArgs());
+extract($opts);
+// $flag
+// $times
+// $salary
+// $c
 
-    $opts = ArgParser::getOptions();
-    var_dump($opts);
-
-    extract($opts);
-    // $flag
-    // $times
-    // $salary
-    // $c
-
-    var_dump(ArgParser::getOption('flag'));
+var_dump(ArgParser::getOption('flag'));
+```
