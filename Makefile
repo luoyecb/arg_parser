@@ -11,5 +11,4 @@ env:
 	@phpunit --version
 
 test: env
-	phpunit --bootstrap src/Luoyecb/ArgParser.php tests/ArgParserTest.php
-
+	phpunit --bootstrap vendor/autoload.php tests/ArgParserTest
