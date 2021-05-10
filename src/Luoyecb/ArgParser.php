@@ -15,7 +15,13 @@ class ArgParser
 	private static $opts = [];
 	private static $parsedOpts = [];
 	private static $args = [];
+
 	private static $isParsed = false;
+	private static $isDebug = false;
+
+	public static function setDebug(bool $debug) {
+		self::$isDebug = $debug;
+	}
 
 	public static function addBool(string $name, $default) {
 		self::addOption($name, self::TYPE_BOOL, $default);
@@ -81,7 +87,7 @@ class ArgParser
 	}
 
 	public static function parse() {
-		if (self::$isParsed) {
+		if (!self::$isDebug && self::$isParsed) {
 			return;
 		}
 

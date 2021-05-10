@@ -4,6 +4,10 @@ use Luoyecb\ArgParser;
 
 class ArgParserTest extends TestCase {
 
+	public static function setUpBeforeClass() {
+		ArgParser::setDebug(true);
+	}
+
 	public function testNormal() {
 		global $argv;
 		$argv = [

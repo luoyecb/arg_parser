@@ -5,7 +5,7 @@ default: test
 
 env:
 	@echo === php version ===
-	@php --version
+	@php -v
 	@echo
 	@echo === phpunit version ===
 	@phpunit --version
