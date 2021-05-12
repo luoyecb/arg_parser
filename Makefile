@@ -11,4 +11,4 @@ env:
 	@phpunit --version
 
 test: env
-	phpunit --bootstrap vendor/autoload.php tests/ArgParserTest
+	phpunit --bootstrap vendor/autoload.php tests

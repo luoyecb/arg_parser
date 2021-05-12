@@ -4,10 +4,6 @@ use Luoyecb\ArgParser;
 
 class ArgParserTest extends TestCase {
 
-	public static function setUpBeforeClass() {
-		ArgParser::setDebug(true);
-	}
-
 	public function testNormal() {
 		global $argv;
 		$argv = [
@@ -24,13 +20,14 @@ class ArgParserTest extends TestCase {
 			'arg3',
 		];
 
-		ArgParser::addBool('flag', false);
-		ArgParser::addInt('times', 0);
-		ArgParser::addFloat('salary', 0.0);
-		ArgParser::addString('msg', '');
-		ArgParser::parse();
-		extract(ArgParser::getOptions());
-		$args = ArgParser::getArgs();
+		$parser = new ArgParser();
+		$parser->addBool('flag', false);
+		$parser->addInt('times', 0);
+		$parser->addFloat('salary', 0.0);
+		$parser->addString('msg', '');
+		$parser->parse();
+		extract($parser->getOptions());
+		$args = $parser->getArgs();
 
 		$this->assertTrue($flag);
 		$this->assertSame($times, 3);
@@ -38,10 +35,12 @@ class ArgParserTest extends TestCase {
 		$this->assertSame($msg, 'this is test msg');
 		$this->assertSame($args, ['arg1', 'arg2', 'arg3']);
 
-		$this->assertSame($flag, ArgParser::getOption('flag'));
-		$this->assertSame($times, ArgParser::getOption('times'));
-		$this->assertSame($salary, ArgParser::getOption('salary'));
-		$this->assertSame($msg, ArgParser::getOption('msg'));
+		$this->assertSame($flag, $parser->getOption('flag'));
+		$this->assertSame($times, $parser->getOption('times'));
+		$this->assertSame($salary, $parser->getOption('salary'));
+		$this->assertSame($msg, $parser->getOption('msg'));
+
+		$this->assertNull($parser->getOption('unexists_flag'));
 	}
 
 	// case: '--'
@@ -62,13 +61,14 @@ class ArgParserTest extends TestCase {
 			'arg3',
 		];
 
-		ArgParser::addBool('flag', false);
-		ArgParser::addInt('times', 0);
-		ArgParser::addFloat('salary', 0.0);
-		ArgParser::addString('msg', '');
-		ArgParser::parse();
-		extract(ArgParser::getOptions());
-		$args = ArgParser::getArgs();
+		$parser = new ArgParser();
+		$parser->addBool('flag', false);
+		$parser->addInt('times', 0);
+		$parser->addFloat('salary', 0.0);
+		$parser->addString('msg', '');
+		$parser->parse();
+		extract($parser->getOptions());
+		$args = $parser->getArgs();
 
 		$this->assertTrue($flag);
 		$this->assertSame($times, 3);
@@ -94,13 +94,14 @@ class ArgParserTest extends TestCase {
 			'arg3',
 		];
 
-		ArgParser::addBool('flag', false);
-		ArgParser::addInt('times', 0);
-		ArgParser::addFloat('salary', 0.0);
-		ArgParser::addString('msg', '');
-		ArgParser::parse();
-		extract(ArgParser::getOptions());
-		$args = ArgParser::getArgs();
+		$parser = new ArgParser();
+		$parser->addBool('flag', false);
+		$parser->addInt('times', 0);
+		$parser->addFloat('salary', 0.0);
+		$parser->addString('msg', '');
+		$parser->parse();
+		extract($parser->getOptions());
+		$args = $parser->getArgs();
 
 		$this->assertTrue($flag);
 		$this->assertSame($times, 3);
@@ -127,13 +128,14 @@ class ArgParserTest extends TestCase {
 			'arg3',
 		];
 
-		ArgParser::addBool('flag', false);
-		ArgParser::addInt('times', 0);
-		ArgParser::addFloat('salary', 0.0);
-		ArgParser::addString('msg', '');
-		ArgParser::parse();
-		extract(ArgParser::getOptions());
-		$args = ArgParser::getArgs();
+		$parser = new ArgParser();
+		$parser->addBool('flag', false);
+		$parser->addInt('times', 0);
+		$parser->addFloat('salary', 0.0);
+		$parser->addString('msg', '');
+		$parser->parse();
+		extract($parser->getOptions());
+		$args = $parser->getArgs();
 
 		$this->assertTrue($flag);
 		$this->assertSame($times, 3);
@@ -157,11 +159,12 @@ class ArgParserTest extends TestCase {
 			'-msg',
 		];
 
-		ArgParser::addBool('flag', false);
-		ArgParser::addInt('times', 0);
-		ArgParser::addFloat('salary', 0.0);
-		ArgParser::addString('msg', '');
-		ArgParser::parse();
+		$parser = new ArgParser();
+		$parser->addBool('flag', false);
+		$parser->addInt('times', 0);
+		$parser->addFloat('salary', 0.0);
+		$parser->addString('msg', '');
+		$parser->parse();
 	}
 
 	/**
@@ -180,11 +183,12 @@ class ArgParserTest extends TestCase {
 			'-flag'
 		];
 
-		ArgParser::addBool('flag', false);
-		ArgParser::addInt('times', 0);
-		ArgParser::addFloat('salary', 0.0);
-		ArgParser::addString('msg', '');
-		ArgParser::parse();
+		$parser = new ArgParser();
+		$parser->addBool('flag', false);
+		$parser->addInt('times', 0);
+		$parser->addFloat('salary', 0.0);
+		$parser->addString('msg', '');
+		$parser->parse();
 	}
 
 	/**
@@ -203,11 +207,12 @@ class ArgParserTest extends TestCase {
 			'this is test msg.'
 		];
 
-		ArgParser::addBool('flag', false);
-		ArgParser::addInt('times', 0);
-		ArgParser::addFloat('salary', 0.0);
-		ArgParser::addString('msg', '');
-		ArgParser::parse();
+		$parser = new ArgParser();
+		$parser->addBool('flag', false);
+		$parser->addInt('times', 0);
+		$parser->addFloat('salary', 0.0);
+		$parser->addString('msg', '');
+		$parser->parse();
 	}
 
 }

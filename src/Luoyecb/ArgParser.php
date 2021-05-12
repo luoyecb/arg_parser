@@ -4,42 +4,36 @@ namespace Luoyecb;
 use \Exception;
 
 // A simple command line option parser.
-class ArgParser
-{
+class ArgParser {
 	// Supported option types
 	const TYPE_INT = 'int';
 	const TYPE_FLOAT = 'float';
 	const TYPE_BOOL = 'bool';
 	const TYPE_STRING = 'str';
 
-	private static $opts = [];
-	private static $parsedOpts = [];
-	private static $args = [];
+	private $opts = [];
+	private $parsedOpts = [];
+	private $args = [];
 
-	private static $isParsed = false;
-	private static $isDebug = false;
+	private $isParsed = false;
 
-	public static function setDebug(bool $debug) {
-		self::$isDebug = $debug;
+	public function addBool(string $name, $default) {
+		$this->addOption($name, self::TYPE_BOOL, $default);
 	}
 
-	public static function addBool(string $name, $default) {
-		self::addOption($name, self::TYPE_BOOL, $default);
+	public function addInt(string $name, $default) {
+		$this->addOption($name, self::TYPE_INT, $default);
 	}
 
-	public static function addInt(string $name, $default) {
-		self::addOption($name, self::TYPE_INT, $default);
+	public function addFloat(string $name, $default) {
+		$this->addOption($name, self::TYPE_FLOAT, $default);
 	}
 
-	public static function addFloat(string $name, $default) {
-		self::addOption($name, self::TYPE_FLOAT, $default);
+	public function addString(string $name, $default) {
+		$this->addOption($name, self::TYPE_STRING, $default);
 	}
 
-	public static function addString(string $name, $default) {
-		self::addOption($name, self::TYPE_STRING, $default);
-	}
-
-	public static function addOption(string $name, string $type, $default) {
+	public function addOption(string $name, string $type, $default) {
 		switch ($type) {
 		case self::TYPE_INT:
 			if (!is_int($default)) {
@@ -65,67 +59,67 @@ class ArgParser
 			throw new InvalidArgumentException(sprintf('unknown option type[%s].', $type));
 		}
 
-		self::$opts[$name] = [
+		$this->opts[$name] = [
 			't' => $type,
 			'v' => $default,
 		];
 	}
 
-	public static function getArgs(): array {
-		return self::$args;
+	public function getArgs(): array {
+		return $this->args;
 	}
 
-	public static function getOptions(): array {
-		return self::$parsedOpts;
+	public function getOptions(): array {
+		return $this->parsedOpts;
 	}
 
-	public static function getOption(string $name) {
-		if (isset(self::$parsedOpts[$name])) {
-			return self::$parsedOpts[$name];
-		}
-		throw new Exception(sprintf('unknown option[%s].', $name));
+	public function getOption(string $name) {
+		return $this->parsedOpts[$name] ?? NULL;
 	}
 
-	public static function parse() {
-		if (!self::$isDebug && self::$isParsed) {
+	public function parse() {
+		if ($this->isParsed) {
 			return;
+		}
+
+		// first, set default value
+		foreach ($this->opts as $k => $v) {
+			$this->parsedOpts[$k] = $v['v'];
 		}
 
 		global $argv;
 		$idx = 1;
 		$len = count($argv);
-
 		while ($idx < $len) {
 			if ($argv[$idx] == '--') {
-				self::$args = array_slice($argv, $idx+1);
+				$this->args = array_slice($argv, $idx+1);
 				break;
 			}
 
-			$name = self::isValidOption($argv[$idx]);
+			$name = $this->isValidOption($argv[$idx]);
 			if ($name === false) {
-				self::$args = array_slice($argv, $idx);
+				$this->args = array_slice($argv, $idx);
 				break;
 			} else {
-				if (!isset(self::$opts[$name])) {
+				$idx++;
+				if (!isset($this->opts[$name])) {
 					// unknown option, ignored
-					$idx++;
 					continue;
 				}
 
-				$default = self::$opts[$name];
-				$idx++;
-				switch ($default['t']) {
+				$type = $this->opts[$name]['t'];
+				switch ($type) {
 				case self::TYPE_BOOL:
-					self::$opts[$name]['v'] = true;
+					$this->parsedOpts[$name] = true;
 					break;
 				case self::TYPE_INT:
 					if ($idx >= $len) {
 						throw new Exception(sprintf("option[%s] require value.", $name));
 					}
 
-					$val = self::isNumeric($argv[$idx]);
+					$val = $this->isNumeric($argv[$idx]);
 					if ($val !== false && is_int($val)) {
-						self::$opts[$name]['v'] = $val;
+						$this->parsedOpts[$name] = $val;
 						$idx++;
 					} else {
 						throw new Exception(sprintf("option[%s] require int value.", $name));
@@ -136,9 +130,9 @@ class ArgParser
 						throw new Exception(sprintf("option[%s] require value.", $name));
 					}
 
-					$val = self::isNumeric($argv[$idx]);
+					$val = $this->isNumeric($argv[$idx]);
 					if ($val !== false && is_float($val) ) {
-						self::$opts[$name]['v'] = $val;
+						$this->parsedOpts[$name] = $val;
 						$idx++;
 					} else {
 						throw new Exception(sprintf("option[%s] require float value.", $name));
@@ -149,9 +143,9 @@ class ArgParser
 						throw new Exception(sprintf("option[%s] require value.", $name));
 					}
 
-					$val = self::isValidOption($argv[$idx]);
+					$val = $this->isValidOption($argv[$idx]);
 					if ($val === false) {
-						self::$opts[$name]['v'] = $argv[$idx];
+						$this->parsedOpts[$name] = $argv[$idx];
 						$idx++;
 					} else {
 						throw new Exception(sprintf("option[%s] require string value.", $name));
@@ -160,21 +154,17 @@ class ArgParser
 			}
 		}
 
-		foreach (self::$opts as $name => $val) {
-			self::$parsedOpts[$name] = $val['v'];
-		}
-
-		self::$isParsed = true;
+		$this->isParsed = true;
 	}
 
-	private static function isValidOption(string $opt) {
+	private function isValidOption(string $opt) {
 		$opt = trim($opt);
 		$len = strlen($opt);
 		if (empty($opt) || $len <= 1) {
 			return false;
 		}
 
-		if (self::strEqual($opt, '--', 2)) {
+		if ($this->strEqual($opt, '--', 2)) {
 			if ($len == 2) {
 				return false;
 			} else {
@@ -188,11 +178,11 @@ class ArgParser
 		return false;
 	}
 
-	private static function strEqual(string $str1, string $str2, int $length): bool {
+	private function strEqual(string $str1, string $str2, int $length): bool {
 		return strncmp($str1, $str2, $length) === 0;
 	}
 
-	private static function isNumeric(string $str) {
+	private function isNumeric(string $str) {
 		if (is_numeric($str)) {
 			return $str + 0;
 		}
