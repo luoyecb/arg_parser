@@ -2,9 +2,10 @@
 namespace Luoyecb;
 
 use \Exception;
+use \ArrayAccess;
 
 // A simple command line option parser.
-class ArgParser {
+class ArgParser implements ArrayAccess {
 	// Supported option types
 	const TYPE_INT = 'int';
 	const TYPE_FLOAT = 'float';
@@ -187,5 +188,21 @@ class ArgParser {
 			return $str + 0;
 		}
 		return false;
+	}
+
+	public function offsetExists($key): bool {
+		return isset($this->opts[$key]);
+	}
+
+	public function offsetGet($key) {
+		return $this->getOption($key);
+	}
+
+	public function offsetSet($key, $val) {
+		throw new Exception('Operation not supported.');
+	}
+
+	public function offsetUnset($key) {
+		throw new Exception('Operation not supported.');
 	}
 }
