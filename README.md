@@ -3,15 +3,16 @@ A simple command line option parser.
 
 # Example:
 ```php
-ArgParser::addBool('flag', false);
-ArgParser::addInt('times', 3);
-ArgParser::addFloat('salary', 14000.00);
-ArgParser::addString('c', 'this is comment');
+$parser = new ArgParser;
+$parser->addBool('flag', false);
+$parser->addInt('times', 3);
+$parser->addFloat('salary', 14000.00);
+$parser->addString('c', 'this is comment');
 
-ArgParser::parse();
-var_dump(ArgParser::getArgs());
+$parser->parse();
+var_dump($parser->getArgs());
 
-$opts = ArgParser::getOptions();
+$opts = $parser->getOptions();
 var_dump($opts);
 
 extract($opts);
@@ -20,5 +21,5 @@ extract($opts);
 // $salary
 // $c
 
-var_dump(ArgParser::getOption('flag'));
+var_dump($parser->getOption('flag'));
 ```
