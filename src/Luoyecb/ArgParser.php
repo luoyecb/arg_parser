@@ -92,70 +92,88 @@ class ArgParser implements ArrayAccess {
 		$idx = 1;
 		$len = count($argv);
 		while ($idx < $len) {
-			if ($argv[$idx] == '--') {
-				$this->args = array_slice($argv, $idx+1);
+			$currOpt = $argv[$idx++];
+			if ($currOpt == '--') {
+				$this->args = array_slice($argv, $idx);
 				break;
 			}
 
-			$name = $this->isValidOption($argv[$idx]);
+			$name = $this->isValidOption($currOpt);
 			if ($name === false) {
-				$this->args = array_slice($argv, $idx);
+				$this->args = array_slice($argv, $idx-1);
 				break;
-			} else {
-				$idx++;
-				if (!isset($this->opts[$name])) {
-					// unknown option, ignored
-					continue;
-				}
+			}
 
-				$type = $this->opts[$name]['t'];
-				switch ($type) {
+			// case: -key=value
+			if (($pos = strpos($name, "=")) !== false) {
+				$val = substr($name, $pos+1);
+				$name = substr($name, 0, $pos);
+				if (!empty($name) && isset($this->opts[$name])) {
+					$type = $this->opts[$name]['t'];
+					if ($type == self::TYPE_BOOL) {
+						$val = true;
+					}
+					$this->parseOption($type, $name, $val);
+				}
+				continue;
+			}
+
+			// unknown option, ignored
+			if (!isset($this->opts[$name])) {
+				continue;
+			}
+
+			$type = $this->opts[$name]['t'];
+			switch ($type) {
 				case self::TYPE_BOOL:
-					$this->parsedOpts[$name] = true;
+					$val = true;
 					break;
 				case self::TYPE_INT:
-					if ($idx >= $len) {
-						throw new Exception(sprintf("option[%s] require value.", $name));
-					}
-
-					$val = $this->isNumeric($argv[$idx]);
-					if ($val !== false && is_int($val)) {
-						$this->parsedOpts[$name] = $val;
-						$idx++;
-					} else {
-						throw new Exception(sprintf("option[%s] require int value.", $name));
-					}
-					break;
 				case self::TYPE_FLOAT:
-					if ($idx >= $len) {
-						throw new Exception(sprintf("option[%s] require value.", $name));
-					}
-
-					$val = $this->isNumeric($argv[$idx]);
-					if ($val !== false && is_float($val) ) {
-						$this->parsedOpts[$name] = $val;
-						$idx++;
-					} else {
-						throw new Exception(sprintf("option[%s] require float value.", $name));
-					}
-					break;
 				case self::TYPE_STRING:
 					if ($idx >= $len) {
 						throw new Exception(sprintf("option[%s] require value.", $name));
 					}
-
-					$val = $this->isValidOption($argv[$idx]);
-					if ($val === false) {
-						$this->parsedOpts[$name] = $argv[$idx];
-						$idx++;
-					} else {
-						throw new Exception(sprintf("option[%s] require string value.", $name));
-					}
-				}
+					$val = $argv[$idx];
+					break;
+			}
+			if ($this->parseOption($type, $name, $val)) {
+				$idx++;
 			}
 		}
 
 		$this->isParsed = true;
+	}
+
+	private function parseOption($type, $name, $val): bool {
+		switch ($type) {
+		case self::TYPE_BOOL:
+			$this->parsedOpts[$name] = $val;
+			return false;
+		case self::TYPE_INT:
+			$val = $this->isNumeric($val);
+			if ($val !== false && is_int($val)) {
+				$this->parsedOpts[$name] = $val;
+				return true;
+			}
+			throw new Exception(sprintf("option[%s] require int value.", $name));
+		case self::TYPE_FLOAT:
+			$val = $this->isNumeric($val);
+			if ($val !== false && is_float($val) ) {
+				$this->parsedOpts[$name] = $val;
+				return true;
+			}
+			throw new Exception(sprintf("option[%s] require float value.", $name));
+		case self::TYPE_STRING:
+			$check = $this->isValidOption($val);
+			if ($check === false) {
+				$this->parsedOpts[$name] = $val;
+				return true;
+			}
+			throw new Exception(sprintf("option[%s] require string value.", $name));
+		default:
+			return true;
+		}
 	}
 
 	private function isValidOption(string $opt) {
