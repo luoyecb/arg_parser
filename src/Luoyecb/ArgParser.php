@@ -95,7 +95,8 @@ class ArgParser implements ArrayAccess {
 		global $argv;
 		$binName = basename($argv[0], '.php');
 
-		$infoStr = "${binName} [Option] [Args...]" . PHP_EOL . PHP_EOL;
+		$infoStr = "Usage:" . PHP_EOL;
+		$infoStr .= "  ${binName} [Option] [Args...]" . PHP_EOL . PHP_EOL;
 		$infoStr .= "Option:" . PHP_EOL;
 		foreach ($helpArrs as $k=>$v) {
 			$infoStr .= sprintf("  -%s %s".PHP_EOL, str_pad($k, $maxLen, " "), $v);
