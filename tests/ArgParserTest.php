@@ -48,12 +48,12 @@ class ArgParserTest extends TestCase {
 		$argv = $input;
 
 		$parser = new ArgParser();
-		$parser->addBool('flag', false, "test flag");
-		$parser->addInt('times', 0, "output times");
-		$parser->addFloat('salary', 0.0, "job salary, float");
-		$parser->addString('msg', '', "description");
-		$parser->addBool('help', false, "show this help information");
-		$parser->parse();
+		$parser->addBool('flag', false, "test flag")
+			->addInt('times', 0, "output times")
+			->addFloat('salary', 0.0, "job salary, float")
+			->addString('msg', '', "description")
+			->addBool('help', false, "show this help information")
+			->parse();
 
 		return $parser;
 	}

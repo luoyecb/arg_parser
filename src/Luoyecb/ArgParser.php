@@ -26,20 +26,24 @@ class ArgParser implements ArrayAccess {
 	private $args = [];
 	private $isParsed = false;
 
-	public function addBool(string $name, $default, string $help = '') {
+	public function addBool(string $name, $default, string $help = ''): ArgParser {
 		$this->addOption($name, self::TYPE_BOOL, $default, $help);
+		return $this;
 	}
 
-	public function addInt(string $name, $default, string $help = '') {
+	public function addInt(string $name, $default, string $help = ''): ArgParser {
 		$this->addOption($name, self::TYPE_INT, $default, $help);
+		return $this;
 	}
 
-	public function addFloat(string $name, $default, string $help = '') {
+	public function addFloat(string $name, $default, string $help = ''): ArgParser {
 		$this->addOption($name, self::TYPE_FLOAT, $default, $help);
+		return $this;
 	}
 
-	public function addString(string $name, $default, string $help = '') {
+	public function addString(string $name, $default, string $help = ''): ArgParser {
 		$this->addOption($name, self::TYPE_STRING, $default, $help);
+		return $this;
 	}
 
 	private function addOption(string $name, string $type, $default, string $help = '') {
