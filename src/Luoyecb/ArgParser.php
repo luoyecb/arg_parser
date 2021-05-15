@@ -4,65 +4,64 @@ namespace Luoyecb;
 use \Exception;
 use \ArrayAccess;
 
-// A simple command line option parser.
+/**
+ * A simple command line option parser.
+ */
 class ArgParser implements ArrayAccess {
 	// Supported option types
-	const TYPE_INT = 'int';
-	const TYPE_FLOAT = 'float';
-	const TYPE_BOOL = 'bool';
-	const TYPE_STRING = 'str';
+	const TYPE_INT = 'INT';
+	const TYPE_FLOAT = 'FLOAT';
+	const TYPE_BOOL = 'BOOL';
+	const TYPE_STRING = 'STRING';
+
+	private static $typeCheckers = [
+		self::TYPE_INT => 'is_int',
+		self::TYPE_FLOAT => 'is_float',
+		self::TYPE_BOOL => 'is_bool',
+		self::TYPE_STRING => 'is_string',
+	];
 
 	private $opts = [];
 	private $parsedOpts = [];
 	private $args = [];
-
 	private $isParsed = false;
 
-	public function addBool(string $name, $default) {
-		$this->addOption($name, self::TYPE_BOOL, $default);
+	public function addBool(string $name, $default, string $help = '') {
+		$this->addOption($name, self::TYPE_BOOL, $default, $help);
 	}
 
-	public function addInt(string $name, $default) {
-		$this->addOption($name, self::TYPE_INT, $default);
+	public function addInt(string $name, $default, string $help = '') {
+		$this->addOption($name, self::TYPE_INT, $default, $help);
 	}
 
-	public function addFloat(string $name, $default) {
-		$this->addOption($name, self::TYPE_FLOAT, $default);
+	public function addFloat(string $name, $default, string $help = '') {
+		$this->addOption($name, self::TYPE_FLOAT, $default, $help);
 	}
 
-	public function addString(string $name, $default) {
-		$this->addOption($name, self::TYPE_STRING, $default);
+	public function addString(string $name, $default, string $help = '') {
+		$this->addOption($name, self::TYPE_STRING, $default, $help);
 	}
 
-	public function addOption(string $name, string $type, $default) {
+	private function addOption(string $name, string $type, $default, string $help = '') {
+		$throwException = false;
 		switch ($type) {
-		case self::TYPE_INT:
-			if (!is_int($default)) {
-				throw new InvalidArgumentException(sprintf("invalid option value, must be int."));
-			}
-			break;
-		case self::TYPE_FLOAT:
-			if (!is_float($default)) {
-				throw new InvalidArgumentException(sprintf("invalid option value, must be float."));
-			}
-			break;
-		case self::TYPE_BOOL:
-			if (!is_bool($default)) {
-				throw new InvalidArgumentException(sprintf("invalid option value, must be bool."));
-			}
-			break;
-		case self::TYPE_STRING:
-			if (!is_string($default)) {
-				throw new InvalidArgumentException(sprintf("invalid option value, must be string."));
-			}
-			break;
-		default:
-			throw new InvalidArgumentException(sprintf('unknown option type[%s].', $type));
+			case self::TYPE_INT:
+			case self::TYPE_FLOAT:
+			case self::TYPE_BOOL:
+			case self::TYPE_STRING:
+				$throwException = !self::$typeCheckers[$type]($default);
+				break;
+			default:
+				throw new InvalidArgumentException(sprintf('Unknown option type[%s].', $type));
+		}
+		if ($throwException) {
+			throw new InvalidArgumentException(sprintf("Invalid option value, must be %s.", $type));
 		}
 
 		$this->opts[$name] = [
 			't' => $type,
 			'v' => $default,
+			'h' => $help,
 		];
 	}
 
@@ -78,12 +77,34 @@ class ArgParser implements ArrayAccess {
 		return $this->parsedOpts[$name] ?? NULL;
 	}
 
+	public function buildUsage(): string {
+		$helpArrs = [];
+
+		$maxLen = 0;
+		foreach ($this->opts as $k=>$v) {
+			$k .= ($v['t']==self::TYPE_BOOL ? ":" : sprintf("=%s:", $v['t']));
+			$helpArrs[$k] = ucfirst($v['h']);
+			$maxLen = max($maxLen, strlen($k));
+		}
+		ksort($helpArrs, SORT_STRING);
+
+		global $argv;
+		$binName = basename($argv[0], '.php');
+
+		$infoStr = "${binName} [Option] [Args...]" . PHP_EOL . PHP_EOL;
+		$infoStr .= "Option:" . PHP_EOL;
+		foreach ($helpArrs as $k=>$v) {
+			$infoStr .= sprintf("  -%s %s".PHP_EOL, str_pad($k, $maxLen, " "), $v);
+		}
+		return $infoStr;
+	}
+
 	public function parse() {
 		if ($this->isParsed) {
 			return;
 		}
 
-		// first, set default value
+		// First, set default value.
 		foreach ($this->opts as $k => $v) {
 			$this->parsedOpts[$k] = $v['v'];
 		}
@@ -104,26 +125,23 @@ class ArgParser implements ArrayAccess {
 				break;
 			}
 
-			// case: -key=value
-			if (($pos = strpos($name, "=")) !== false) {
+			// Handle -key=value syntax
+			$pos = StringUtil::containsFirstPos($name, '=');
+			if ($pos !== false) {
 				$val = substr($name, $pos+1);
 				$name = substr($name, 0, $pos);
-				if (!empty($name) && isset($this->opts[$name])) {
-					$type = $this->opts[$name]['t'];
-					if ($type == self::TYPE_BOOL) {
-						$val = true;
-					}
-					$this->parseOption($type, $name, $val);
+				if (!empty($name) && $this->optionExists($name)) {
+					$this->parseOption($this->optionType($name), $name, $val);
 				}
 				continue;
 			}
 
-			// unknown option, ignored
-			if (!isset($this->opts[$name])) {
+			// Unknown option, ignored
+			if (!$this->optionExists($name)) {
 				continue;
 			}
 
-			$type = $this->opts[$name]['t'];
+			$type = $this->optionType($name);
 			switch ($type) {
 				case self::TYPE_BOOL:
 					$val = true;
@@ -132,7 +150,7 @@ class ArgParser implements ArrayAccess {
 				case self::TYPE_FLOAT:
 				case self::TYPE_STRING:
 					if ($idx >= $len) {
-						throw new Exception(sprintf("option[%s] require value.", $name));
+						throw new Exception(sprintf("Option[%s] require value.", $name));
 					}
 					$val = $argv[$idx];
 					break;
@@ -145,71 +163,79 @@ class ArgParser implements ArrayAccess {
 		$this->isParsed = true;
 	}
 
-	private function parseOption($type, $name, $val): bool {
-		switch ($type) {
-		case self::TYPE_BOOL:
-			$this->parsedOpts[$name] = $val;
-			return false;
-		case self::TYPE_INT:
-			$val = $this->isNumeric($val);
-			if ($val !== false && is_int($val)) {
-				$this->parsedOpts[$name] = $val;
-				return true;
-			}
-			throw new Exception(sprintf("option[%s] require int value.", $name));
-		case self::TYPE_FLOAT:
-			$val = $this->isNumeric($val);
-			if ($val !== false && is_float($val) ) {
-				$this->parsedOpts[$name] = $val;
-				return true;
-			}
-			throw new Exception(sprintf("option[%s] require float value.", $name));
-		case self::TYPE_STRING:
-			$check = $this->isValidOption($val);
-			if ($check === false) {
-				$this->parsedOpts[$name] = $val;
-				return true;
-			}
-			throw new Exception(sprintf("option[%s] require string value.", $name));
-		default:
-			return true;
-		}
+	private function optionExists($name): bool {
+		return isset($this->opts[$name]);
+	}
+
+	private function optionType($name): string {
+		return $this->opts[$name]['t'];
 	}
 
 	private function isValidOption(string $opt) {
-		$opt = trim($opt);
 		$len = strlen($opt);
 		if (empty($opt) || $len <= 1) {
 			return false;
 		}
 
-		if ($this->strEqual($opt, '--', 2)) {
+		if (StringUtil::equalsLen($opt, '--', 2)) {
 			if ($len == 2) {
 				return false;
 			} else {
-				return substr($opt, 2); // without '--'
+				return substr($opt, 2); // Without '--'
 			}
 		}
-		if ($opt[0] == '-') {
-			return substr($opt, 1); // without '-'
-		}
 
+		if ($opt[0] == '-') {
+			return substr($opt, 1); // Without '-'
+		}
 		return false;
 	}
 
-	private function strEqual(string $str1, string $str2, int $length): bool {
-		return strncmp($str1, $str2, $length) === 0;
+	private function parseOption($type, $name, $val): bool {
+		$throwException = false;
+		switch ($type) {
+			case self::TYPE_BOOL:
+				$this->parsedOpts[$name] = true; // Ignore $val
+				return false;
+			case self::TYPE_INT:
+			case self::TYPE_FLOAT:
+				$val = $this->parseNumeric($val, $type);
+				if ($val !== false) {
+					$this->parsedOpts[$name] = $val;
+					return true;
+				}
+				$throwException = true;
+				break;
+			case self::TYPE_STRING:
+				$check = $this->isValidOption($val);
+				if ($check === false) {
+					$this->parsedOpts[$name] = $val;
+					return true;
+				}
+				$throwException = true;
+				break;
+		}
+		if ($throwException) {
+			throw new Exception(sprintf("Option[%s] require %s value.", $name, $type));
+		}
+		return true;
 	}
 
-	private function isNumeric(string $str) {
+	private function parseNumeric(string $str, string $type) {
 		if (is_numeric($str)) {
-			return $str + 0;
+			$isFloat = StringUtil::containsAny($str, '.', 'e', 'E');
+			if ($type == self::TYPE_INT && !$isFloat) {
+				return intval($str);
+			}
+			if ($type == self::TYPE_FLOAT) {
+				return floatval($str);
+			}
 		}
 		return false;
 	}
 
 	public function offsetExists($key): bool {
-		return isset($this->opts[$key]);
+		return $this->optionExists($key);
 	}
 
 	public function offsetGet($key) {

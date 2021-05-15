@@ -4,140 +4,85 @@ use Luoyecb\ArgParser;
 
 class ArgParserTest extends TestCase {
 
-	public function testNormal() {
+	public function dataProvider() {
+	return [
+		[
+			['', '-flag', '--times', '3', '-salary', '14000', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3'],
+			[true, 3, floatval(14000), 'this is test msg'],
+			['arg1', 'arg2', 'arg3'],
+		],
+		[
+			// -key=value
+			['', '-flag=true', '--times=3', '-salary=14000.00', '-msg=this is test msg', '-times', '4', 'arg1', 'arg2', 'arg3'],
+			[true, 4, 14000.00, 'this is test msg'],
+			['arg1', 'arg2', 'arg3'],
+		],
+		[
+			['', '-flag', '--times =3', '-salary= 14000.00', '-msg= this is test msg', 'arg1', 'arg2', 'arg3'],
+			[true, 0, 14000.00, ' this is test msg'],
+			['arg1', 'arg2', 'arg3'],
+		],
+		[
+			// --
+			['', '-flag', '-times', '3', '-salary', '14000.00', '--', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3'],
+			[true, 3, 14000.00, ''],
+			['-msg', 'this is test msg', 'arg1', 'arg2', 'arg3'],
+		],
+		[
+			// unknown option '-salaryyyy'
+			['', '-flag', '-times', '3', '-salaryyyy', '14000.00', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3'],
+			[true, 3, 0.0, ''],
+			['14000.00', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3'],
+		],
+		[
+			// invalid option '==='
+			['', '-flag', '-times', '3', '===', '-salaryyyy', '14000.00', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3'],
+			[true, 3, 0.0, ''],
+			['===', '-salaryyyy', '14000.00', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3'],
+		],
+	];
+	}
+
+	public function buildArgParser(array $input): ArgParser {
 		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'--times',
-			'3',
-			'-salary',
-			'14000.00',
-			'-msg',
-			'this is test msg',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
+		$argv = $input;
 
 		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
+		$parser->addBool('flag', false, "test flag");
+		$parser->addInt('times', 0, "output times");
+		$parser->addFloat('salary', 0.0, "job salary, float");
+		$parser->addString('msg', '', "description");
+		$parser->addBool('help', false, "show this help information");
 		$parser->parse();
+
+		return $parser;
+	}
+
+	/**
+	 * @dataProvider dataProvider
+	 */
+	public function testNormal($input, $expected, $expectedArgs) {
+		$parser = $this->buildArgParser($input);
 		extract($parser->getOptions());
-		$args = $parser->getArgs();
 
-		$this->assertTrue($flag);
-		$this->assertSame($times, 3);
-		$this->assertSame($salary, 14000.00);
-		$this->assertSame($msg, 'this is test msg');
-		$this->assertSame($args, ['arg1', 'arg2', 'arg3']);
+		$this->assertSame($expected[0], $flag);
+		$this->assertSame($expected[1], $times);
+		$this->assertSame($expected[2], $salary);
+		$this->assertSame($expected[3], $msg);
 
-		$this->assertSame($flag, $parser->getOption('flag'));
-		$this->assertSame($times, $parser->getOption('times'));
-		$this->assertSame($salary, $parser->getOption('salary'));
-		$this->assertSame($msg, $parser->getOption('msg'));
+		$this->assertSame($expected[0], $parser->getOption('flag'));
+		$this->assertSame($expected[1], $parser->getOption('times'));
+		$this->assertSame($expected[2], $parser->getOption('salary'));
+		$this->assertSame($expected[3], $parser->getOption('msg'));
+
+		$this->assertSame($expected[0], $parser['flag']);
+		$this->assertSame($expected[1], $parser['times']);
+		$this->assertSame($expected[2], $parser['salary']);
+		$this->assertSame($expected[3], $parser['msg']);
+
+		$this->assertSame($expectedArgs, $parser->getArgs());
+
 		$this->assertNull($parser->getOption('unexists_flag'));
-	}
-
-	// case: '-key=value'
-	public function testOpEqual() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag=true',
-			'--times=3',
-			'-salary=14000.00',
-			'-msg=this is test msg',
-			'-times',
-			'4',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-		extract($parser->getOptions());
-		$args = $parser->getArgs();
-
-		$this->assertTrue($flag);
-		$this->assertSame($times, 4);
-		$this->assertSame($salary, 14000.00);
-		$this->assertSame($msg, 'this is test msg');
-		$this->assertSame($args, ['arg1', 'arg2', 'arg3']);
-	}
-
-	public function testOpEqualEx() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'--times =3', // special
-			'-salary= 14000.00', // special
-			'-msg= this is test msg', // special
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-		extract($parser->getOptions());
-		$args = $parser->getArgs();
-
-		$this->assertTrue($flag);
-		$this->assertSame($times, 0);
-		$this->assertSame($salary, 14000.00);
-		$this->assertSame($msg, ' this is test msg');
-		$this->assertSame($args, ['arg1', 'arg2', 'arg3']);
-	}
-
-	public function testArrayAccess() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'--times',
-			'3',
-			'-salary',
-			'14000.00',
-			'-msg',
-			'this is test msg',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-		extract($parser->getOptions());
-		$args = $parser->getArgs();
-
-		$this->assertTrue($flag);
-		$this->assertSame($times, 3);
-		$this->assertSame($salary, 14000.00);
-		$this->assertSame($msg, 'this is test msg');
-		$this->assertSame($args, ['arg1', 'arg2', 'arg3']);
-
-		$this->assertSame($flag, $parser['flag']);
-		$this->assertSame($times, $parser['times']);
-		$this->assertSame($salary, $parser['salary']);
-		$this->assertSame($msg, $parser['msg']);
 		$this->assertNull($parser['unexists_flag']);
 	}
 
@@ -145,28 +90,7 @@ class ArgParserTest extends TestCase {
 	 * @expectedException Exception
 	 */
 	public function testArrayAccessException() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'--times',
-			'3',
-			'-salary',
-			'14000.00',
-			'-msg',
-			'this is test msg',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-
+		$parser = $this->buildArgParser(['']);
 		$parser['flag'] = true;
 	}
 
@@ -174,201 +98,40 @@ class ArgParserTest extends TestCase {
 	 * @expectedException Exception
 	 */
 	public function testArrayAccessException2() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'--times',
-			'3',
-			'-salary',
-			'14000.00',
-			'-msg',
-			'this is test msg',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-
+		$parser = $this->buildArgParser(['']);
 		unset($parser['times']);
-	}
-
-	// case: '--'
-	public function testLine() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'-times',
-			'3',
-			'-salary',
-			'14000.00',
-			'--',
-			'-msg',
-			'this is test msg',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-		extract($parser->getOptions());
-		$args = $parser->getArgs();
-
-		$this->assertTrue($flag);
-		$this->assertSame($times, 3);
-		$this->assertSame($salary, 14000.00);
-		$this->assertSame($msg, '');
-		$this->assertSame($args, ['-msg', 'this is test msg', 'arg1', 'arg2', 'arg3']);
-	}
-
-	// case: unknown option '-salaryyyy'
-	public function testUnknownOption() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'-times',
-			'3',
-			'-salaryyyy',
-			'14000.00',
-			'-msg',
-			'this is test msg',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-		extract($parser->getOptions());
-		$args = $parser->getArgs();
-
-		$this->assertTrue($flag);
-		$this->assertSame($times, 3);
-		$this->assertSame($salary, 0.0);
-		$this->assertSame($msg, '');
-		$this->assertSame($args, ['14000.00', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3']);
-	}
-
-	// case: invalid option '==='
-	public function testInvalidOption() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'-times',
-			'3',
-			'===',
-			'-salaryyyy',
-			'14000.00',
-			'-msg',
-			'this is test msg',
-			'arg1',
-			'arg2',
-			'arg3',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
-		extract($parser->getOptions());
-		$args = $parser->getArgs();
-
-		$this->assertTrue($flag);
-		$this->assertSame($times, 3);
-		$this->assertSame($salary, 0.0);
-		$this->assertSame($msg, '');
-		$this->assertSame($args, ['===', '-salaryyyy', '14000.00', '-msg', 'this is test msg', 'arg1', 'arg2', 'arg3']);
 	}
 
 	/**
 	 * @expectedException Exception
 	 */
 	public function testException() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'-times',
-			'3',
-			'-salary',
-			'14000.00',
-			'-msg',
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
+		$input = ['', '-flag', '-times', '3', '-salary', '14000.00', '-msg'];
+		$parser = $this->buildArgParser($input);
 	}
 
 	/**
 	 * @expectedException Exception
 	 */
 	public function testException2() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'-times',
-			'3',
-			'-salary',
-			'14000.00',
-			'-msg',
-			'-flag'
-		];
-
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
+		$input = ['', '-flag', '-times', '3', '-salary', '14000.00', '-msg', '-flag'];
+		$parser = $this->buildArgParser($input);
 	}
 
 	/**
 	 * @expectedException Exception
 	 */
 	public function testException3() {
-		global $argv;
-		$argv = [
-			'ArgParserTest.php',
-			'-flag',
-			'-times',
-			'3',
-			'-salary',
-			'14000.00===',
-			'-msg',
-			'this is test msg.'
-		];
+		$input = ['', '-flag', '-times', '3', '-salary', '14000.00===', '-msg', 'this is test msg.'];
+		$parser = $this->buildArgParser($input);
+	}
 
-		$parser = new ArgParser();
-		$parser->addBool('flag', false);
-		$parser->addInt('times', 0);
-		$parser->addFloat('salary', 0.0);
-		$parser->addString('msg', '');
-		$parser->parse();
+	public function testUsage() {
+		$parser = $this->buildArgParser(['ArgParser']);
+		$info = $parser->buildUsage();
+		echo PHP_EOL;
+		var_dump($info);
+		$this->assertTrue(strlen($info) > 0);
 	}
 
 }
