@@ -129,8 +129,8 @@ class ArgParserTest extends TestCase {
 	public function testUsage() {
 		$parser = $this->buildArgParser(['ArgParser']);
 		$info = $parser->buildUsage();
-		echo PHP_EOL;
-		var_dump($info);
+		// echo PHP_EOL;
+		// var_dump($info);
 		$this->assertTrue(strlen($info) > 0);
 	}
 

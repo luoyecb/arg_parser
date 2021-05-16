@@ -81,6 +81,16 @@ class ArgParser implements ArrayAccess {
 		return $this->parsedOpts[$name] ?? NULL;
 	}
 
+	public function checkHelp() {
+		global $argc;
+		$needHelp = $this->getOption('help') || $this->getOption('h') || ($argc == 1);
+		if ($this->isParsed && $needHelp) {
+			echo $this->buildUsage();
+			echo PHP_EOL;
+			exit();
+		}
+	}
+
 	public function buildUsage(): string {
 		$helpArrs = [];
 
