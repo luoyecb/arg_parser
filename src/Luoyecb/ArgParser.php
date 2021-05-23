@@ -3,28 +3,29 @@ namespace Luoyecb;
 
 use \Exception;
 use \ArrayAccess;
+use \Luoyecb\ArgParser\StringUtil;
 
 /**
  * A simple command line option parser.
  */
 class ArgParser implements ArrayAccess {
 	// Supported option types
-	const TYPE_INT = 'INT';
-	const TYPE_FLOAT = 'FLOAT';
-	const TYPE_BOOL = 'BOOL';
+	const TYPE_INT    = 'INT';
+	const TYPE_FLOAT  = 'FLOAT';
+	const TYPE_BOOL   = 'BOOL';
 	const TYPE_STRING = 'STRING';
 
 	private static $typeCheckers = [
-		self::TYPE_INT => 'is_int',
-		self::TYPE_FLOAT => 'is_float',
-		self::TYPE_BOOL => 'is_bool',
+		self::TYPE_INT    => 'is_int',
+		self::TYPE_FLOAT  => 'is_float',
+		self::TYPE_BOOL   => 'is_bool',
 		self::TYPE_STRING => 'is_string',
 	];
 
-	private $opts = [];
+	private $opts       = [];
 	private $parsedOpts = [];
-	private $args = [];
-	private $isParsed = false;
+	private $args       = [];
+	private $isParsed   = false;
 
 	public function addBool(string $name, $default, string $help = ''): ArgParser {
 		$this->addOption($name, self::TYPE_BOOL, $default, $help);
@@ -104,6 +105,7 @@ class ArgParser implements ArrayAccess {
 
 		global $argv;
 		$binName = basename($argv[0], '.php');
+		$binName = basename($binName, '.phar');
 
 		$infoStr = "Usage:" . PHP_EOL;
 		$infoStr .= "  ${binName} [Option] [Args...]" . PHP_EOL . PHP_EOL;

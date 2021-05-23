@@ -1,5 +1,5 @@
 <?php
-namespace Luoyecb;
+namespace Luoyecb\ArgParser;
 
 class StringUtil {
 
